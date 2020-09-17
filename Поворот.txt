@@ -1,0 +1,145 @@
+#include "pch.h"
+#include <GL/Glut.h>
+#define _USE_MATH_DEFINES
+#include <cmath>
+
+class Quaternion
+{
+public:
+	double r, i, j, k;
+	Quaternion()
+	{
+	}
+
+	Quaternion(double r, double i, double j, double k)
+	{
+		this->r = r;
+		this->i = i;
+		this->j = j;
+		this->k = k;
+	}
+
+	double Mag()
+	{
+		return sqrt(r * r + i * i + j * j + k * k);
+	}
+
+	Quaternion Inverse()
+	{
+		double mag = Mag();
+		return Quaternion(r / mag, -i / mag, -j / mag, -k / mag);
+	}
+
+	Quaternion Unit()
+	{
+		double mag = Mag();
+		return Quaternion(r, i / mag, j / mag, k / mag);
+	}
+
+	Quaternion Mul(Quaternion q) {
+		double r = this->r*q.r - this->i*q.i - this->j*q.j - this->k*q.k;
+		double i = this->r*q.i + this->i*q.r + this->j*q.k - this->k*q.j;
+		double j = this->r*q.j - this->i*q.k + this->j*q.r + this->k*q.i;
+		double k = this->r*q.k + this->i*q.j - this->j*q.i + this->k*q.r;
+		return Quaternion(r, i, j, k);
+	}
+};
+
+void changeSize(int w, int h) {
+	// предотвращение деления на ноль
+	if (h == 0)
+		h = 1;
+	float ratio = w * 1.0 / h;
+	// используем матрицу проекции
+	glMatrixMode(GL_PROJECTION);
+	// обнуляем матрицу
+	glLoadIdentity();
+	// установить параметры вьюпорта
+	glViewport(0, 0, w, h);
+	// установить корректную перспективу
+	gluPerspective(45.0f, ratio, 0.1f, 100.0f);
+	// вернуться к матрице проекции
+	glMatrixMode(GL_MODELVIEW);
+}
+
+
+
+float angle = 0.0f;
+void renderScene(void)
+{
+	// очистка буфера цвета и глубины
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	// обнуление трансформации
+	glLoadIdentity();
+	// установка камеры
+	gluLookAt(0.0f, 0.0f, 10.0f,
+		1.0f, 0.0f, 0.0f,
+		1.0f, 1.0f, 0.0f);
+
+	double phi = M_PI / 180.0 * angle;
+	double i = 1.0; // по х
+	double j = 1.0; // по y
+	double k = 0.0; // по z
+	double cosphi = cos(phi / 2.0);
+	double sinphi = sin(phi / 2.0);
+	Quaternion q = Quaternion(cosphi, i*sinphi, j*sinphi, k*sinphi).Unit();
+	Quaternion p;
+
+	// Треугольник
+	glTranslatef(0.0f, 0.0f, -2.0f);
+	glColor3f(1.0f, 1.0f, 0.0f);
+	glBegin(GL_TRIANGLES);
+	
+
+
+
+	p = Quaternion(0.0, -0.5, -0.5, 0.0);
+	p = q.Mul(p.Mul(q.Inverse()));
+	glVertex3f((float)p.i, (float)p.j, (float)p.k);
+
+	p = Quaternion(0.0, 0.5, -0.5, 0.0);
+	p = q.Mul(p.Mul(q.Inverse()));
+	glVertex3f((float)p.i, (float)p.j, (float)p.k);
+
+	p = Quaternion(0.0, 0.5, 0.5, 0.0);
+	p = q.Mul(p.Mul(q.Inverse()));
+	glVertex3f((float)p.i, (float)p.j, (float)p.k);
+
+	glEnd();
+
+	angle += 0.5f; // скорость
+
+	glFlush(); 
+
+
+
+	glutSwapBuffers();
+
+}
+
+int main(int argc, char **argv) {
+
+	// Инициализация GLUT и создание окна
+	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
+	glutInitWindowPosition(1000, 100);
+	glutInitWindowSize(600, 600);
+	glutCreateWindow("Поворот");
+
+	
+	
+
+	// регистрация
+	glutDisplayFunc(renderScene);
+	glutReshapeFunc(changeSize);
+	glutIdleFunc(renderScene);
+
+
+
+	// основной цикл
+	glutMainLoop();
+	
+	
+
+	return 1;
+}
